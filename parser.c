@@ -46,8 +46,8 @@ void start_game_loop(chip8_hardware_t* hardware){
         SDLK_v
     };
 
-    SDL_Window* window = SDL_CreateWindow("Chip8-Emulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 896, 448, NOFLAGS);
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    SDL_Window* window = SDL_CreateWindow("Chip8-Emulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 896, 448, SDL_RENDERER_ACCELERATED);
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, NOFLAGS);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderSetLogicalSize(renderer, 64, 32);
     SDL_RenderClear(renderer);
@@ -233,11 +233,19 @@ void execute_opcode(uint16_t opcode, chip8_hardware_t* hardware) {
             for(int j = 0; j < 8; j++) {
                 uint8_t bit = (byte << j) & 0x80;
                 if(bit != 0){
-                    if(hardware->screen[xcord + j][ycord + i] == 1) {
-                        // Set collision flag
-                        hardware->registers->V[REGISTERF] = 1;
+                    if(xcord + j > 63){
+                        continue;
+                    } else if(ycord + i > 31) {
+                        continue;
+                    } else {
+                        if(hardware->screen[xcord + j][ycord + i] == 1) {
+                            // Set collision flag
+                            hardware->registers->V[REGISTERF] = 1;
+                        }
+                        printf("xcord: %d\n", xcord);
+                        printf("ycord: %d\n", ycord);
+                        hardware->screen[xcord + j][ycord + i] ^= 1;
                     }
-                    hardware->screen[xcord + j][ycord + i] ^= 1;
                 }
             }
         }
