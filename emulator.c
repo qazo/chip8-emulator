@@ -22,7 +22,8 @@ int main(int argc, char** argv)
         .registers = registers,
         .stack = stack,
         .screen = screen,
-        .keyboard = keyboard
+        .keyboard = keyboard,
+        .screen_updated = FALSE
     };
     start_game_loop(&hardware);
 }

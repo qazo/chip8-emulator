@@ -48,6 +48,20 @@ uint32_t** initialize_screen(){
     return screen;
 }
 
+
+void free_hardware(chip8_hardware_t* hardware){
+    free(hardware->registers->V);
+    free(hardware->registers);
+    free(hardware->stack->stack);
+    free(hardware->stack);
+    free(hardware->main_memory);
+    free(hardware->keyboard);
+    for(int i = 0; i < 64; i++) {
+        free(hardware->screen[i]);
+    }
+    free(hardware->screen);
+}
+
 uint8_t* initialize_keyboard(){
     uint8_t* keyboard = (uint8_t*)calloc(16, sizeof(uint8_t));
     return keyboard;

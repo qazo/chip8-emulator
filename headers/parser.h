@@ -6,6 +6,7 @@
 #include "time.h"
 #include <math.h>
 #include <SDL2/SDL.h>
+#include <unistd.h>
 
 #define REGISTERX (opcode & 0x0F00) >> 8
 #define REGISTERY (opcode & 0x00F0) >> 4

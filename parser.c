@@ -51,12 +51,13 @@ void start_game_loop(chip8_hardware_t* hardware){
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderSetLogicalSize(renderer, 64, 32);
     SDL_RenderClear(renderer);
+    int cycles = 0;
     while(1) {
-    uint64_t start = SDL_GetTicks();
-
+    cycles++;
     while(SDL_PollEvent(&event)){
         switch(event.type) {
             case SDL_QUIT:
+                free_hardware(hardware);
                 exit(1);
                 break;
             case SDL_KEYDOWN:
@@ -76,38 +77,36 @@ void start_game_loop(chip8_hardware_t* hardware){
         }
     }
 
-    for(int i = 0; i < 1000; i++){
         uint16_t opcode = parse_opcode(hardware->main_memory[hardware->registers->PC], hardware->main_memory[hardware->registers->PC + 1]);
         execute_opcode(opcode, hardware);
-    }
 
-        if(hardware->registers->DT > 0) {
+        if(cycles % 9 == 0) {
+            if(hardware->registers->DT > 0) {
             hardware->registers->DT--;
-        }
+            }
 
-        if(hardware->registers->ST > 0) {
-            SDL_QueueAudio(deviceID, wavBuffer, wavLength);
-            SDL_PauseAudioDevice(deviceID, UNPAUSE);
-            hardware->registers->ST--;
-        }
-        
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        SDL_RenderClear(renderer);
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        for(int i = 0; i < 64; i++){
-            for(int j = 0; j < 32; j++){
-                if(hardware->screen[i][j] == 1){
-                    SDL_RenderDrawPoint(renderer, i , j);
-                }
+            if(hardware->registers->ST > 0) {
+                SDL_QueueAudio(deviceID, wavBuffer, wavLength);
+                SDL_PauseAudioDevice(deviceID, UNPAUSE);
+                hardware->registers->ST--;
             }
         }
-        SDL_RenderPresent(renderer);
+        if(hardware->screen_updated == FALSE) {
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+            SDL_RenderClear(renderer);
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            for(int i = 0; i < 64; i++){
+                for(int j = 0; j < 32; j++){
+                    if(hardware->screen[i][j] == 1){
+                        SDL_RenderDrawPoint(renderer, i , j);
+                    }
+                }
+            }
+            SDL_RenderPresent(renderer);
+            hardware->screen_updated = TRUE;
+        }
 
-        uint64_t end = SDL_GetTicks();
-
-        float timeElapsed = (end-start)/(float)SDL_GetPerformanceFrequency() * 1000.0f;
-       // SDL_Delay(floor(16.666f - timeElapsed));
-
+        usleep(1800);
     }
 }
 
@@ -121,10 +120,8 @@ void execute_opcode(uint16_t opcode, chip8_hardware_t* hardware) {
     switch ((opcode & 0xF000) >> 12) {
     case 0x0:
         if((opcode & 0x000F) > 0){
-            printf("Executed 0xE\n");
             hardware->registers->PC = pop(hardware->stack);
         } else {
-               printf("Executed 0x0\n");
          for(int i = 0; i < 64; i++){
             for(int j = 0; j < 32; j++) {
                 hardware->screen[i][j] = 0;
@@ -134,16 +131,13 @@ void execute_opcode(uint16_t opcode, chip8_hardware_t* hardware) {
         hardware->registers->PC = hardware->registers->PC + 2;
         break;
     case 0x1:
-       printf("Executed 0x1\n");
         hardware->registers->PC = VALNNN;
         break;
     case 0x2:
-    printf("Executed 0x2\n");
         push(hardware->stack, hardware->registers->PC);
         hardware->registers->PC = VALNNN;
         break;
     case 0x3:
-    printf("Executed 0x3\n");
         if(hardware->registers->V[REGISTERX] == VALNN) {
             hardware->registers->PC = hardware->registers->PC + 4;
         } else {
@@ -151,7 +145,6 @@ void execute_opcode(uint16_t opcode, chip8_hardware_t* hardware) {
         }
         break;
     case 0x4:
-    printf("Executed 0x4\n");
         if(hardware->registers->V[REGISTERX] != VALNN){
             hardware->registers->PC = hardware->registers->PC + 4;
         } else {
@@ -159,7 +152,6 @@ void execute_opcode(uint16_t opcode, chip8_hardware_t* hardware) {
         }
         break;
     case 0x5:
-    printf("Executed 0x5\n");
         if(hardware->registers->V[REGISTERX] == hardware->registers->V[REGISTERY]){
             hardware->registers->PC = hardware->registers->PC + 4;
         } else {
@@ -167,35 +159,28 @@ void execute_opcode(uint16_t opcode, chip8_hardware_t* hardware) {
         }
         break;
     case 0x6:
-    printf("Executed 0x6\n");
         hardware->registers->V[REGISTERX] = VALNN;
         hardware->registers->PC = hardware->registers->PC + 2;
         break;
     case 0x7:
-    printf("Executed 0x7\n");
         hardware->registers->V[REGISTERX] = hardware->registers->V[REGISTERX] + VALNN;
         hardware->registers->PC = hardware->registers->PC + 2;
         break;
     case 0x8:
         switch(opcode & 0x000F) {
             case 0x0:
-            printf("Executed 0x80\n");
                 hardware->registers->V[REGISTERX] = hardware->registers->V[REGISTERY];
                 break;
             case 0x1:
-             printf("Executed 0x81\n");
                 hardware->registers->V[REGISTERX] = hardware->registers->V[REGISTERX] | hardware->registers->V[REGISTERY];
                 break;
             case 0x2:
-             printf("Executed 0x82\n");
                 hardware->registers->V[REGISTERX] = hardware->registers->V[REGISTERX] & hardware->registers->V[REGISTERY];
                 break;
             case 0x3:
-             printf("Executed 0x83\n");
                 hardware->registers->V[REGISTERX] = hardware->registers->V[REGISTERX] ^ hardware->registers->V[REGISTERY];
                 break;
             case 0x4:
-             printf("Executed 0x84\n");
                 if((hardware->registers->V[REGISTERX] + hardware->registers->V[REGISTERY]) > 0xFF) {
                     hardware->registers->V[REGISTERF] = 1;
                 } else {
@@ -204,7 +189,6 @@ void execute_opcode(uint16_t opcode, chip8_hardware_t* hardware) {
                 hardware->registers->V[REGISTERX] = hardware->registers->V[REGISTERX] + hardware->registers->V[REGISTERY];
                 break;
             case 0x5:
-             printf("Executed 0x85\n");
                 if(hardware->registers->V[REGISTERX] > hardware->registers->V[REGISTERY]) {
                     hardware->registers->V[REGISTERF] = 1;
                 } else {
@@ -213,12 +197,10 @@ void execute_opcode(uint16_t opcode, chip8_hardware_t* hardware) {
                 hardware->registers->V[REGISTERX] = hardware->registers->V[REGISTERX] - hardware->registers->V[REGISTERY];
                 break;
             case 0x6:
-             printf("Executed 0x86\n");
                 hardware->registers->V[REGISTERF] = hardware->registers->V[REGISTERX] & 0x01;
                 hardware->registers->V[REGISTERX] = hardware->registers->V[REGISTERX] >> 1;
                 break;
             case 0x7:
-             printf("Executed 0x87\n");
                 if(hardware->registers->V[REGISTERY] >= hardware->registers->V[REGISTERX]) {
                     hardware->registers->V[REGISTERF] = 1;
                 } else {
@@ -228,7 +210,6 @@ void execute_opcode(uint16_t opcode, chip8_hardware_t* hardware) {
                 hardware->registers->V[REGISTERX] = hardware->registers->V[REGISTERY] - hardware->registers->V[REGISTERX];
                 break;
             case 0xE:
-             printf("Executed 0x8E\n");
                 hardware->registers->V[REGISTERF] = hardware->registers->V[REGISTERX] >> 7;
                 hardware->registers->V[REGISTERX] = hardware->registers->V[REGISTERX] << 1;
                 break;
@@ -237,7 +218,6 @@ void execute_opcode(uint16_t opcode, chip8_hardware_t* hardware) {
         break;
     
     case 0x9:
-     printf("Executed 0x9\n");
         if(hardware->registers->V[REGISTERX] != hardware->registers->V[REGISTERY]) {
             hardware->registers->PC = hardware->registers->PC + 4;
         } else {
@@ -245,20 +225,16 @@ void execute_opcode(uint16_t opcode, chip8_hardware_t* hardware) {
         }
         break;
     case 0xA:
-    printf("Executed 0xA\n");
         hardware->registers->I = VALNNN;
         hardware->registers->PC = hardware->registers->PC + 2;
         break;
     case 0xB:
-    printf("Executed 0xB\n");
         hardware->registers->PC = hardware->registers->V[0] + VALNNN;
         break;
     case 0xC:
-     printf("Executed 0xC\n");
         hardware->registers->V[REGISTERX] = rand_byte() & VALNN;
         hardware->registers->PC = hardware->registers->PC + 2;
     case 0xD:
-     printf("Executed 0xD\n");
         // Draw Instruction: DXYN
         hardware->registers->V[REGISTERF] = 0;
         // Loop over N bytes
@@ -284,12 +260,12 @@ void execute_opcode(uint16_t opcode, chip8_hardware_t* hardware) {
             }
         }
         hardware->registers->PC = hardware->registers->PC + 2;
+        hardware->screen_updated = FALSE;
 
         break;
     case 0xE:
         switch(opcode & 0x000F) {
             case 0xE:
-             printf("Executed 0xEE\n");
                 if(hardware->keyboard[hardware->registers->V[REGISTERX]] != FALSE){
                     hardware->registers->PC = hardware->registers->PC + 4;
                 } else {
@@ -297,7 +273,6 @@ void execute_opcode(uint16_t opcode, chip8_hardware_t* hardware) {
                 }
                 break;
             case 0x1:
-             printf("Executed 0xE1\n");
                 if(hardware->keyboard[hardware->registers->V[REGISTERX]] == FALSE){
                     hardware->registers->PC = hardware->registers->PC + 4;
                 } else {
@@ -309,12 +284,10 @@ void execute_opcode(uint16_t opcode, chip8_hardware_t* hardware) {
     case 0xF:
         switch(opcode & 0x00FF){
             case 0x07:
-             printf("Executed 0xF7\n");
                 hardware->registers->V[REGISTERX] = hardware->registers->DT;
                 hardware->registers->PC = hardware->registers->PC + 2;
                 break;
             case 0x0A:
-            printf("Executed 0xFA\n");
                 for(int i = 0; i < 16; i++){
                     if(hardware->keyboard[i] == TRUE) {
                         hardware->registers->V[REGISTERX] = i;
@@ -324,27 +297,22 @@ void execute_opcode(uint16_t opcode, chip8_hardware_t* hardware) {
                 }
                 break;
             case 0x15:
-            printf("Executed 0xF15\n");
                 hardware->registers->DT = hardware->registers->V[REGISTERX];
                 hardware->registers->PC = hardware->registers->PC + 2;
                 break;
             case 0x18:
-            printf("Executed 0xF18\n");
                 hardware->registers->ST = hardware->registers->V[REGISTERX];
                 hardware->registers->PC = hardware->registers->PC + 2;
                 break;
             case 0x1E:
-            printf("Executed 0xF1E\n");
                 hardware->registers->I = hardware->registers->I + hardware->registers->V[REGISTERX];
                 hardware->registers->PC = hardware->registers->PC + 2;
                 break;
             case 0x29:
-            printf("Executed 0xF29\n");
                 hardware->registers->I = hardware->registers->V[REGISTERX] * 0x05;
                 hardware->registers->PC = hardware->registers->PC + 2;
                 break;
             case 0x33:
-            printf("Executed 0xF33\n");
                 // set hundreds place value in memory.
                 hardware->main_memory[hardware->registers->I] = hardware->registers->V[REGISTERX] / 100;
                 // set tens place value in memory.
@@ -354,14 +322,12 @@ void execute_opcode(uint16_t opcode, chip8_hardware_t* hardware) {
                 hardware->registers->PC = hardware->registers->PC + 2;
                 break;
             case 0x55:
-            printf("Executed 0xF55\n");
                 for(int reg = 0; reg <= REGISTERX; reg++) {
                     hardware->main_memory[hardware->registers->I + reg] = hardware->registers->V[reg];
                 } 
                 hardware->registers->PC = hardware->registers->PC + 2;
                 break;
             case 0x65:
-            printf("Executed 0x65\n");
                 for(int reg = 0; reg <= REGISTERX; reg++){
                     hardware->registers->V[reg] = hardware->main_memory[hardware->registers->I + reg];
                 } 

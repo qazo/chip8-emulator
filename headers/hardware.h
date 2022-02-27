@@ -26,6 +26,7 @@ typedef struct {
     uint8_t* main_memory;
     uint32_t** screen;
     uint8_t* keyboard;
+    uint8_t screen_updated;
 } chip8_hardware_t; 
 
 void push(chip8_stack_t* stack, uint16_t value);
@@ -37,5 +38,6 @@ void load_game(const char* game_path, uint8_t* main_memory);
 void load_font_into_memory(uint8_t* main_memory);
 uint32_t** initialize_screen();
 uint8_t* initialize_keyboard();
+void free_hardware(chip8_hardware_t* hardware);
 
 #endif // HARDWARE_H
