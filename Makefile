@@ -1,5 +1,5 @@
 CC := gcc 
-CFLAGS := -lSDL2 -lm
+CFLAGS := -lSDL2 -lm #-fsanitize=address
 debug := false
 
 emulator: emulator.o hardware.o parser.o

@@ -51,11 +51,10 @@ void start_game_loop(chip8_hardware_t* hardware){
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderSetLogicalSize(renderer, 64, 32);
     SDL_RenderClear(renderer);
-    while(SDL_WaitEvent(&event)) {
-        uint64_t start = SDL_GetTicks();
-        uint16_t opcode = parse_opcode(hardware->main_memory[hardware->registers->PC], hardware->main_memory[hardware->registers->PC + 1]);
-        execute_opcode(opcode, hardware);
-        
+    while(1) {
+    uint64_t start = SDL_GetTicks();
+
+    while(SDL_PollEvent(&event)){
         switch(event.type) {
             case SDL_QUIT:
                 exit(1);
@@ -75,17 +74,11 @@ void start_game_loop(chip8_hardware_t* hardware){
                 }
                 break;
         }
+    }
 
-        if(hardware->registers->DT > 0) {
-            hardware->registers->DT--;
-        }
+        uint16_t opcode = parse_opcode(hardware->main_memory[hardware->registers->PC], hardware->main_memory[hardware->registers->PC + 1]);
+        execute_opcode(opcode, hardware);
         
-        if(hardware->registers->ST > 0) {
-            SDL_QueueAudio(deviceID, wavBuffer, wavLength);
-            SDL_PauseAudioDevice(deviceID, UNPAUSE);
-            hardware->registers->ST--;
-        }
-
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
@@ -118,9 +111,11 @@ void execute_opcode(uint16_t opcode, chip8_hardware_t* hardware) {
         if((opcode & 0x000F) > 0){
             hardware->registers->PC = pop(hardware->stack);
         } else {
-           for(int i = 0; i < 2048; i++) {
-               hardware->screen[i] = 0;
-           }
+         for(int i = 0; i < 64; i++){
+            for(int j = 0; j < 32; j++) {
+                hardware->screen[i][j] = 0;
+            }
+          }
         }
         break;
     case 0x1:
