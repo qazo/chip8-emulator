@@ -46,7 +46,7 @@ void start_game_loop(chip8_hardware_t* hardware){
         SDLK_v
     };
 
-    SDL_Window* window = SDL_CreateWindow("Chip8-Emulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 896, 448, SDL_RENDERER_ACCELERATED);
+    SDL_Window* window = SDL_CreateWindow("Chip8-Emulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 896, 448, NOFLAGS);
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, NOFLAGS);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderSetLogicalSize(renderer, 64, 32);
