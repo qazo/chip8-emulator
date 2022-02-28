@@ -239,8 +239,8 @@ void execute_opcode(uint16_t opcode, chip8_hardware_t* hardware) {
         hardware->registers->V[REGISTERF] = 0;
         // Loop over N bytes
         for(int i = 0; i < (opcode & 0x000F); i++){
-            uint8_t xcord = hardware->registers->V[REGISTERX];
-            uint8_t ycord = hardware->registers->V[REGISTERY];
+            uint8_t xcord = hardware->registers->V[REGISTERX] % 64;
+            uint8_t ycord = hardware->registers->V[REGISTERY] % 32;
             uint8_t byte = hardware->main_memory[hardware->registers->I + i];
             for(int j = 0; j < 8; j++) {
                 uint8_t bit = (byte << j) & 0x80;
